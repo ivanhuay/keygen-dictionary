@@ -59,6 +59,7 @@ class DictionaryMaker:
 		print "writing file..."
 		lines = []
 		for i in range(1, self.convinationLevel):
+			print self.simpleCollection
 			res = itertools.product(self.simpleCollection, repeat=i)
 			for j in res:
 				posiblePass = ''.join(j)
