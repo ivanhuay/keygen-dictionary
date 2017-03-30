@@ -44,11 +44,11 @@ class DictionaryMaker:
         	if len(self.aditionalData) > 0:
             		for data in self.aditionalData:
                 		self.simpleCollection.append(data)
-                		self.simpleCollection.extend(data)
+                		self.simpleCollection.extend(data.split(" "))
 				tempTitles = []
 		for text in self.simpleCollection:
 			if not text.title() in self.simpleCollection:
-				tempTitles.append(text.title)
+				tempTitles.append(text.title())
 		self.simpleCollection.extend(tempTitles)
         	self.greenPrint("Done")
 
@@ -59,7 +59,7 @@ class DictionaryMaker:
 		print "writing file..."
 		lines = []
 		for i in range(1, self.convinationLevel):
-			print self.simpleCollection
+			# print self.simpleCollection
 			res = itertools.product(self.simpleCollection, repeat=i)
 			for j in res:
 				posiblePass = ''.join(j)
@@ -71,7 +71,7 @@ class DictionaryMaker:
 	def makeFile(self, lines):
 		with open('pass.txt', 'a') as passFile:
 			for line in lines:
-				passFile.write(line)
+				passFile.write(line+'\n')
 
 
 dictionaryMaker  = DictionaryMaker()
