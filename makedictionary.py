@@ -21,18 +21,27 @@ class DictionaryMaker:
 	def getInput(self):
 		print("It is possible to enter an empty response...")
 		self.convinationLevel = int(raw_input("convination level:"))
-		self.domainName = raw_input("is there a domain name? (empty for none): ")
-		self.address = raw_input("is there an address? (empty for none): ")
-		aditionalData = []
-		moreData = True
-		while moreData:
-			data = raw_input("is there aditional data? (empty for none): ")
-			if data:
-				aditionalData.append(data)
-			else:
-    				moreData = False
+		self.makeQuestion("domain name?","domainName")
+		self.makeQuestion("address?","address")
+		self.makeQuestion("birthdate or important date?(dd-mm-yyyy)","importantDate")
+		self.makeQuestion("identifier or identification number?", "identification")
+		self.makeQuestion("aditional data?","aditionalData")
 
-		self.aditionalData = aditionalData
+	def makeQuestion(self,questionStr,storeStr):
+		nextQuestion = True
+
+		if not getattr(self,storeStr):
+			setattr(self,storeStr, [])
+
+		storeSelf = getattr(self,storeStr)
+
+		while nextQuestion:
+			tempAnswer = raw_input(questionStr + " (empty = next question)")
+			if tempAnswer != "":
+				storeSelf.append(tempAnswer)
+			else:
+				nextQuestion = False
+		setattr(self,storeStr,storeSelf)
 	def processInput(self):
 		print("processing data...")
         	if self.domainName:
