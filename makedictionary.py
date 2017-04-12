@@ -10,7 +10,10 @@ class DictionaryMaker:
 		self.simpleCollection = ["admin","adm","adm","2015","2016","2017","2014","2013"]
 		self.convinationLevel = 2
 		self.domainName = False
+		self.fullName = False
 		self.address = False
+		self.importantDate = False
+		self.identification = False
 
 	def welcome(self):
 		print("Welcome human, Please answer the following questions...")
@@ -23,9 +26,40 @@ class DictionaryMaker:
 		self.convinationLevel = int(raw_input("convination level:"))
 		self.makeQuestion("domain name?","domainName")
 		self.makeQuestion("address?","address")
+		self.makeQuestion("full name?","fullName")
 		self.makeQuestion("birthdate or important date?(dd-mm-yyyy)","importantDate")
 		self.makeQuestion("identifier or identification number?", "identification")
 		self.makeQuestion("aditional data?","aditionalData")
+
+	def processNumbers(self,inStr):
+		response = [str(s) for s in inStr.split() if s.isdigit()]
+		return response
+
+	def processStr(self,inStr):
+		response = [str(s) for s in inStr.split() if not s.isdigit()]
+		response.append(inStr)
+		response.append("".join(inStr.split()))
+		return response
+	def processDomain(self,inStr):
+		response = []
+		response.append(inStr)
+		response.extend(inStr.split("."))
+		return response
+	def processAddress(self,inStr):
+		response = []
+		response.append(inStr)
+		response.extend(inStr.split())
+		response.append(''.join(inStr.split()))
+		response.extend(self.processNumbers(inStr))
+		response.extend(self.processStr(inStr))
+		return response
+	def processDate(self,inStr):
+		response = []
+		if "/" in inStr:
+			response.extends(inStr.split("/"))
+		if "-" in inStr:
+			response.extends(inStr.split("-"))
+		return response
 
 	def makeQuestion(self,questionStr,storeStr):
 		nextQuestion = True
@@ -44,20 +78,28 @@ class DictionaryMaker:
 		setattr(self,storeStr,storeSelf)
 	def processInput(self):
 		print("processing data...")
-        	if self.domainName:
-            		self.simpleCollection.append(self.domainName)
-            		self.simpleCollection.extend(self.domainName.split("."))
-        	if self.address:
-            		self.simpleCollection.append(self.address)
-            		self.simpleCollection.extend(self.address.split(" "))
+        	if len(self.domainName) > 0:
+			for domain in self.domainName:
+            			self.simpleCollection.extend(self.processDomain(domain))
+		if len(self.fullName) > 0:
+			for fullName in self.fullName:
+				self.simpleCollection.extend(self.processStr(fullName))
+        	if len(self.address) > 0:
+			for address in self.address:
+            			self.simpleCollection.extend(self.processAddress(address))
         	if len(self.aditionalData) > 0:
             		for data in self.aditionalData:
-                		self.simpleCollection.append(data)
-                		self.simpleCollection.extend(data.split(" "))
-				tempTitles = []
+                		self.simpleCollection.extend(self.processStr(data))
+		if len(self.importantDate) > 0:
+			for date in self.importantDate:
+				self.simpleCollection.extend(self.processDate(date))
+		if len(self.identification) > 0:
+			for identification in self.identification:
+				self.simpleCollection.extend(self.processAddress(identification))
+		tempTitles = []
 		for text in self.simpleCollection:
-			if not text.title() in self.simpleCollection:
-				tempTitles.append(text.title())
+			if str(text).title() in self.simpleCollection:
+				tempTitles.append(str(text).title())
 		self.simpleCollection.extend(tempTitles)
         	self.greenPrint("Done")
 
