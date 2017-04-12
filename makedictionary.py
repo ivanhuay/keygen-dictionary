@@ -32,7 +32,13 @@ class DictionaryMaker:
 		self.makeQuestion("aditional data?","aditionalData")
 
 	def processNumbers(self,inStr):
-		response = [str(s) for s in inStr.split() if s.isdigit()]
+		numbers = [str(s) for s in inStr.split() if s.isdigit()]
+		response = []
+		for number in numbers:
+			for i in range(1, len(number)):
+				res = itertools.product(number,repeat = i)
+				for convination in res:
+					response.append(''.join(convination))
 		return response
 
 	def processStr(self,inStr):
@@ -101,6 +107,12 @@ class DictionaryMaker:
 			if str(text).title() in self.simpleCollection:
 				tempTitles.append(str(text).title())
 		self.simpleCollection.extend(tempTitles)
+
+		cleanList = []
+		for stringPosible in self.simpleCollection:
+			if stringPosible not in cleanList:
+				cleanList.append(stringPosible)
+		self.simpleCollection = cleanList
         	self.greenPrint("Done")
 
 	def greenPrint(self, text):
@@ -109,7 +121,7 @@ class DictionaryMaker:
 	def generateDictionary(self):
 		print "writing file..."
 		lines = []
-		for i in range(1, self.convinationLevel):
+		for i in range(1, self.convinationLevel + 1):
 			# print self.simpleCollection
 			res = itertools.product(self.simpleCollection, repeat=i)
 			for j in res:
