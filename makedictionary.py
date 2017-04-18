@@ -46,6 +46,12 @@ class DictionaryMaker:
 		response.append(inStr)
 		response.append("".join(inStr.split()))
 		return response
+	def processName(self,inStr):
+		response = self.processStr(inStr)
+		words = [str(s) for s in inStr.split() if not s.isdigit()]
+		for word in words:
+			response.append(word[0])
+		return response
 	def processDomain(self,inStr):
 		response = []
 		response.append(inStr)
@@ -61,10 +67,18 @@ class DictionaryMaker:
 		return response
 	def processDate(self,inStr):
 		response = []
+		date = []
 		if "/" in inStr:
 			response.extend(inStr.split("/"))
 		if "-" in inStr:
 			response.extend(inStr.split("-"))
+		date.extend(response)
+		if len(response) == 3 and len(response[2]) == 4:
+			response.append(response[2][:2])
+			response.append(response[2][2:])
+		response.append(''.join(date))
+		response.append('-'.join(date))
+		response.append('='.join(date))
 		return response
 	def processIdentification(self,inStr):
                 numbers = [str(s) for s in inStr.split() if s.isdigit()]
@@ -99,7 +113,7 @@ class DictionaryMaker:
 		if len(self.fullName) > 0:
 			print("processing full name...")
 			for fullName in self.fullName:
-				self.simpleCollection.extend(self.processStr(fullName))
+				self.simpleCollection.extend(self.processName(fullName))
         	if len(self.address) > 0:
 			print("processing address...")
 			for address in self.address:
