@@ -2,7 +2,7 @@
 import os
 
 import itertools
-
+import operator
 
 class DictionaryMaker:
 	def __init__(self):
@@ -51,7 +51,11 @@ class DictionaryMaker:
 		words = [str(s) for s in inStr.split() if not s.isdigit()]
 		for word in words:
 			response.append(word[0])
-		return response
+			response.append(word[0].title())
+		res = itertools.product(response, repeat=2)
+		for convination in res:
+			response.append(''.join(convination))
+		return self.cleanList(response)
 	def processDomain(self,inStr):
 		response = []
 		response.append(inStr)
@@ -67,19 +71,26 @@ class DictionaryMaker:
 		return response
 	def processDate(self,inStr):
 		response = []
-		date = []
 		if "/" in inStr:
 			response.extend(inStr.split("/"))
 		if "-" in inStr:
 			response.extend(inStr.split("-"))
-		date.extend(response)
+
 		if len(response) == 3 and len(response[2]) == 4:
 			response.append(response[2][:2])
 			response.append(response[2][2:])
-		response.append(''.join(date))
-		response.append('-'.join(date))
-		response.append('='.join(date))
-		return response
+
+		tmpResponse = []
+		if len(response) == 0:
+			return response
+
+		res = itertools.product(response, repeat=3)
+		for convination in res:
+			response.append(''.join(convination))
+			#response.append('-'.join(convination))
+			#response.append('/'.join(convination))
+		print("date convinations: " + str(len(response)) + ".")
+		return self.cleanList(response)
 	def processIdentification(self,inStr):
                 numbers = [str(s) for s in inStr.split() if s.isdigit()]
                 response = []
@@ -87,8 +98,7 @@ class DictionaryMaker:
                         for i in range(1, len(number)):
 				response.append(number[0:i])
 				response.append(number[:i])
-		response = self.cleanList(response)
-                return response
+                return self.cleanList(response)
 	def makeQuestion(self,questionStr,storeStr):
 		nextQuestion = True
 
@@ -98,7 +108,7 @@ class DictionaryMaker:
 		storeSelf = getattr(self,storeStr)
 
 		while nextQuestion:
-			tempAnswer = raw_input(questionStr + " (empty = next question)")
+			tempAnswer = raw_input(questionStr + " (empty = next question): ")
 			if tempAnswer != "":
 				storeSelf.append(tempAnswer)
 			else:
@@ -138,25 +148,26 @@ class DictionaryMaker:
 
         	self.greenPrint("Done")
 	def cleanList(self,list):
-		cleanList = []
-		for strItem in list:
-			if strItem.strip() not in cleanList:
-				cleanList.append(strItem)
-		return cleanList
+		return sorted(set(list))
 	def greenPrint(self, text):
 		print '\033[92m' + text + " " + u'\u2713' + '\033[0m'
 
 	def generateDictionary(self):
-		print "writing file..."
+		print "making words convinations..."
+		print str(len(self.simpleCollection)) + " words."
 		lines = []
 		for i in range(1, self.convinationLevel + 1):
-			# print self.simpleCollection
-			res = itertools.product(self.simpleCollection, repeat=i)
+			print "starting level: " + str(i) + "."
+			res = itertools.product(self.cleanList(self.simpleCollection), repeat=i)
 			for j in res:
 				posiblePass = ''.join(j)
 				lines.append(posiblePass)
-
+			self.greenPrint( "leven " + str(i) + ": done")
+		print("cleaning List... "+str(len(lines)))
 		lines = self.cleanList(lines)
+		self.greenPrint("clen list done lines: " + str(len(lines)) + ".")
+
+		print "writing "+str(len(lines))+" lines in file..."
 		self.makeFile(lines)
 		self.greenPrint("write file done")
 
