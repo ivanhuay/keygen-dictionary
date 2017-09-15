@@ -84,7 +84,7 @@ class DictionaryMaker:
 		if len(response) == 0:
 			return response
 
-		res = itertools.product(response, repeat=3)
+		res = itertools.combinations(response, 3)
 		for convination in res:
 			response.append(''.join(convination))
 			#response.append('-'.join(convination))
