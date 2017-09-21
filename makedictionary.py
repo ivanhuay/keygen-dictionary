@@ -7,7 +7,7 @@ import operator
 class DictionaryMaker:
 	def __init__(self):
 		self.aditionalData = []
-		self.simpleCollection = ["admin","adm","adm","2015","2016","2017","2014","2013",".","-","_","@"]
+		self.simpleCollection=["admin","adm","adm","2015","2016","2017","2014","2013",".","-","_","@"]
 		self.convinationLevel = 2
 		self.domainName = False
 		self.fullName = False
@@ -92,13 +92,13 @@ class DictionaryMaker:
 		print("date convinations: " + str(len(response)) + ".")
 		return self.cleanList(response)
 	def processIdentification(self,inStr):
-                numbers = [str(s) for s in inStr.split() if s.isdigit()]
-                response = []
-                for number in numbers:
-                        for i in range(1, len(number)):
+		numbers = [str(s) for s in inStr.split() if s.isdigit()]
+		response = []
+		for number in numbers:
+			for i in range(1, len(number)):
 				response.append(number[0:i])
 				response.append(number[:i])
-                return self.cleanList(response)
+				return self.cleanList(response)
 	def makeQuestion(self,questionStr,storeStr):
 		nextQuestion = True
 
@@ -116,22 +116,22 @@ class DictionaryMaker:
 		setattr(self,storeStr,storeSelf)
 	def processInput(self):
 		print("Starting processing...")
-        	if len(self.domainName) > 0:
+		if len(self.domainName) > 0:
 			print("processing domain name...")
 			for domain in self.domainName:
-            			self.simpleCollection.extend(self.processDomain(domain))
-		if len(self.fullName) > 0:
-			print("processing full name...")
-			for fullName in self.fullName:
-				self.simpleCollection.extend(self.processName(fullName))
-        	if len(self.address) > 0:
+				self.simpleCollection.extend(self.processDomain(domain))
+			if len(self.fullName) > 0:
+				print("processing full name...")
+				for fullName in self.fullName:
+					self.simpleCollection.extend(self.processName(fullName))
+		if len(self.address) > 0:
 			print("processing address...")
 			for address in self.address:
-            			self.simpleCollection.extend(self.processAddress(address))
-        	if len(self.aditionalData) > 0:
+				self.simpleCollection.extend(self.processAddress(address))
+		if len(self.aditionalData) > 0:
 			print("processing additional data...")
-            		for data in self.aditionalData:
-                		self.simpleCollection.extend(self.processStr(data))
+			for data in self.aditionalData:
+				self.simpleCollection.extend(self.processStr(data))
 		if len(self.importantDate) > 0:
 			print("processing dates...")
 			for date in self.importantDate:
@@ -146,7 +146,7 @@ class DictionaryMaker:
 				tempTitles.append(str(text).title())
 		self.simpleCollection.extend(tempTitles)
 
-        	self.greenPrint("Done")
+		self.greenPrint("Done")
 	def cleanList(self,list):
 		return sorted(set(list))
 	def greenPrint(self, text):
