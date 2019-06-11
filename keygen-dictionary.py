@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import os
 
 import itertools
@@ -9,7 +9,7 @@ class DictionaryMaker:
     def __init__(self):
         self.aditionalData = []
         self.simpleCollection = ["admin", "adm", "adm", "2015",
-                                 "2018", "2016", "2017", "2014", "2013", ".", "-", "_", "@"]
+                                 "2019","2018", "2016", "2017", "2014", ".", "-", "_", "@"]
         self.convinationLevel = 2
         self.domainName = False
         self.fullName = False
@@ -25,7 +25,7 @@ class DictionaryMaker:
 
     def getInputs(self):
         print("Usage: it is possible to enter an empty response...")
-        convination = raw_input("convination level: (2 recomended)")
+        convination = input("convination level: (2 recomended)")
         self.convinationLevel = 2
         if convination != "" :
             self.convinationLevel = int(convination)
@@ -121,7 +121,7 @@ class DictionaryMaker:
         storeSelf = getattr(self, storeStr)
 
         while nextQuestion:
-            tempAnswer = raw_input(questionStr + " (empty = next question): ")
+            tempAnswer = input(questionStr + " (empty = next question): ")
             if tempAnswer != "":
                 storeSelf.append(tempAnswer)
             else:
@@ -167,14 +167,14 @@ class DictionaryMaker:
         return sorted(set(list))
 
     def greenPrint(self, text):
-        print '\033[92m' + text + " " + u'\u2713' + '\033[0m'
+        print('\033[92m' + text + " " + u'\u2713' + '\033[0m')
 
     def generateDictionary(self):
-        print "making words convinations..."
-        print str(len(self.simpleCollection)) + " words."
+        print("making words convinations...")
+        print(str(len(self.simpleCollection)) + " words.")
         lines = []
         for i in range(1, self.convinationLevel + 1):
-            print "starting level: " + str(i) + "."
+            print("starting level: " + str(i) + ".")
             res = itertools.product(self.cleanList(
                 self.simpleCollection), repeat=i)
             for j in res:
@@ -185,7 +185,7 @@ class DictionaryMaker:
         lines = self.cleanList(lines)
         self.greenPrint("clen list done lines: " + str(len(lines)) + ".")
 
-        print "writing " + str(len(lines)) + " lines in file..."
+        print("writing " + str(len(lines)) + " lines in file...")
         self.makeFile(lines)
         self.greenPrint("write file done")
 

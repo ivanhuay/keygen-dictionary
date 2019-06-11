@@ -1,21 +1,22 @@
-# makedictionary.py
-makedictionary.py is a dictionary generator with personal data. The purpose of this project is research.
+# keygen-dictionaty.py
+`keygen-dictionaty.py` is a dictionary generator with personal data.
 
-you can use your data to verify if your passwords are secure.
+The purpose of this project is research.
+
+also you can use your data to verify if your passwords are secure.
 ## usage
 
 ```python
-python makedictionary.py
+python3 keygen-dictionary.py
 ```
 or
 ```python
-./makedictionary.py
+./keygen-dictionary.py
 ```
 
 
 #### Planned improvements for next realeases:
 * Performance improvements
-* Posible migration to python 2.x or 3.x
 * pip publication
 
 #### Do you want to collaborate?
