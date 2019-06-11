@@ -14,6 +14,10 @@ or
 ./keygen-dictionary.py
 ```
 
+### Screenshot
+![Alt image](https://github.com/ivanhuay/keygen-dictionary/blob/master/img/2.png?raw=true)
+
+![Alt image](https://github.com/ivanhuay/keygen-dictionary/blob/master/img/1.png?raw=true)
 
 #### Planned improvements for next realeases:
 * Performance improvements
