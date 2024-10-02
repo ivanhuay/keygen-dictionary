@@ -3,19 +3,28 @@ import os
 
 import itertools
 import operator
-
+from datetime import datetime
 
 class DictionaryMaker:
     def __init__(self):
         self.aditionalData = []
-        self.simpleCollection = ["admin", "adm", "adm", "2015",
-                                 "2019","2018", "2016", "2017", "2014", ".", "-", "_", "@"]
+        self.simpleCollection = ["admin", "adm", "adm", ".", "-", "_", "@"]
         self.convinationLevel = 2
         self.domainName = False
         self.fullName = False
         self.address = False
         self.importantDate = False
         self.identification = False
+        self.fillSimpleCollection()
+
+    def fillSimpleCollection(self):
+        # Populate with the latest 10 years
+        current_year = datetime.now().year
+        list_years = [str(i) for i in range(current_year -10, current_year)]
+        list_years_end = [str(i)[-2:] for i in range(current_year -10, current_year)]
+        self.simpleCollection.extend(list_years)
+        self.simpleCollection.extend(list_years_end)
+        print(self.simpleCollection)
 
     def welcome(self):
         print("Welcome human, Please answer the following questions...")
@@ -91,26 +100,28 @@ class DictionaryMaker:
             response.append(response[2][:2])
             response.append(response[2][2:])
 
-        tmpResponse = []
         if len(response) == 0:
             return response
 
         res = itertools.combinations(response, 3)
         for convination in res:
             response.append(''.join(convination))
-            # response.append('-'.join(convination))
-            # response.append('/'.join(convination))
+
         print("date convinations: " + str(len(response)) + ".")
         return self.cleanList(response)
 
     def processIdentification(self, inStr):
-        numbers = [str(s) for s in inStr.split() if s.isdigit()]
+        if(len(str(inStr)) == 1):
+            numbers = [str(inStr)]
+        else:
+            numbers = [str(s) for s in inStr.split() if s.isdigit()]
+
         response = []
         for number in numbers:
             for i in range(1, len(number)):
                 response.append(number[0:i])
                 response.append(number[:i])
-                return self.cleanList(response)
+        return self.cleanList(response)
 
     def makeQuestion(self, questionStr, storeStr):
         nextQuestion = True
@@ -195,5 +206,8 @@ class DictionaryMaker:
                 passFile.write(line + '\n')
 
 
-dictionaryMaker = DictionaryMaker()
-dictionaryMaker.welcome()
+try:
+    dictionaryMaker = DictionaryMaker()
+    dictionaryMaker.welcome()
+except KeyboardInterrupt:
+    print("\n\nKeygen interrupt, Bye!") 
