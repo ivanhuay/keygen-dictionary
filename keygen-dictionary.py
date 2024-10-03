@@ -38,14 +38,14 @@ class DictionaryMaker:
         self.convinationLevel = 2
         if convination != "" :
             self.convinationLevel = int(convination)
-        self.makeQuestion("domain name?", "domainName")
-        self.makeQuestion("address?", "address")
-        self.makeQuestion("full name?", "fullName")
+        self.makeQuestion("Domain url?", "domainName")
+        self.makeQuestion("Address?", "address")
+        self.makeQuestion("Full Name?", "fullName")
         self.makeQuestion(
-            "birthdate or important date?(dd-mm-yyyy)", "importantDate")
+            "Birthdate or important date?(dd-mm-yyyy)", "importantDate")
         self.makeQuestion(
-            "identifier or identification number?", "identification")
-        self.makeQuestion("aditional data?", "aditionalData")
+            "Identifier or identification number?", "identification")
+        self.makeQuestion("Aditional data?", "aditionalData")
 
     def processNumbers(self, inStr):
         numbers = [str(s) for s in inStr.split() if s.isdigit()]
@@ -142,27 +142,27 @@ class DictionaryMaker:
     def processInput(self):
         print("Starting processing...")
         if len(self.domainName) > 0:
-            print("processing domain name...")
+            print("Processing domain name...")
             for domain in self.domainName:
                 self.simpleCollection.extend(self.processDomain(domain))
             if len(self.fullName) > 0:
-                print("processing full name...")
+                print("Processing full name...")
                 for fullName in self.fullName:
                     self.simpleCollection.extend(self.processName(fullName))
         if len(self.address) > 0:
-            print("processing address...")
+            print("Processing address...")
             for address in self.address:
                 self.simpleCollection.extend(self.processAddress(address))
         if len(self.aditionalData) > 0:
-            print("processing additional data...")
+            print("Processing additional data...")
             for data in self.aditionalData:
                 self.simpleCollection.extend(self.processStr(data))
         if len(self.importantDate) > 0:
-            print("processing dates...")
+            print("Processing dates...")
             for date in self.importantDate:
                 self.simpleCollection.extend(self.processDate(date))
         if len(self.identification) > 0:
-            print("processing identification...")
+            print("Processing identification...")
             for identification in self.identification:
                 self.simpleCollection.extend(
                     self.processIdentification(identification))
