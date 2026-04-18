@@ -1,75 +1,177 @@
-# keygen-dictionary.py
+# keygen-dictionary
 
-`keygen-dictionary.py` is a powerful dictionary generator that uses personal data to create comprehensive wordlists. This tool is designed for research purposes and can be used to verify the strength of passwords or for authorized penetration testing.
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-1.0.0-informational)
 
-## Purpose
+OSINT-based password dictionary generator for authorized security testing.
 
-The primary objectives of this project are:
+Takes personal data (name, date of birth, address, domain, etc.) and produces a
+targeted wordlist sorted by Shannon entropy — human-like combinations first.
 
-1. To facilitate research in password security and dictionary-based attacks.
-2. To allow users to check the vulnerability of their passwords against personalized dictionaries.
-3. To assist in authorized penetration testing scenarios.
+> **Warning**
+> For authorized use only. Only use against systems you own or have explicit written
+> permission to test. The author is not responsible for misuse.
 
-**Note:** This tool should only be used ethically and legally. Ensure you have proper authorization before using it in any penetration testing context.
+---
 
 ## Features
 
-- Generates dictionaries based on various personal data inputs
-- Customizable combination levels
-- Command-line interface for easy interaction
-- Outputs results to a text file for further analysis
+- Interactive mode with guided prompts (`questionary`)
+- One-liner CLI mode via flags — scriptable, no prompts
+- YAML config file support for repeatable target profiles
+- Entropy sort — low-entropy (human-like) candidates first
+- Leet speak variants (`a→4`, `e→3`, `i→1`, `o→0`, `s→5`)
+- Common suffixes seeded automatically (`!`, `123`, `1234`, `#1`, …)
+- Min/max length filter to match real password policies
+- Streamed output — RAM-safe even at combination level 3+
+- `--dry-run` to preview token count before committing
+
+---
 
 ## Installation
 
-Clone the repository:
+**From source (recommended):**
 
 ```bash
 git clone https://github.com/ivanhuay/keygen-dictionary.git
 cd keygen-dictionary
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
 ```
+
+**Requirements:** Python 3.10+
+
+---
 
 ## Usage
 
-Run the script using Python 3:
+### Interactive mode
+
+Run with no flags to enter guided prompts:
 
 ```bash
-python3 keygen-dictionary.py
+keygen-dictionary
 ```
 
-Or make it executable and run:
+```
+keygen-dictionary v1.0.0 — leave any field empty to skip
+
+Combination level: 2
+Min password length (0 = no limit): 8
+Max password length (0 = no limit): 16
+Full name: John Doe
+Domain URL: example.com
+Birth/important date (dd-mm-yyyy): 01-01-1990
+...
+
+  Tokens collected : 169
+  Est. candidates  : ~28,730
+  Sample           : !, !!, #1, ...
+
+Proceed with generation? (Y/n)
+```
+
+### CLI mode
+
+Pass any data flag to skip interactive prompts entirely:
 
 ```bash
-chmod +x keygen-dictionary.py
-./keygen-dictionary.py
+keygen-dictionary \
+  --name "John Doe" \
+  --domain example.com \
+  --date 01-01-1990 \
+  --level 2 \
+  --min-length 8 \
+  --max-length 16 \
+  --output wordlist.txt \
+  --entropy-sort
 ```
 
-Follow the prompts to input personal data and configure the dictionary generation process.
+Multiple values per field:
 
-## Screenshots
+```bash
+keygen-dictionary --name "John Doe" --name "Johnny" --additional "fido" --additional "chelsea"
+```
 
-![Usage Example 1](https://github.com/ivanhuay/keygen-dictionary/blob/master/img/2.png?raw=true)
+Preview without generating:
 
-![Usage Example 2](https://github.com/ivanhuay/keygen-dictionary/blob/master/img/1.png?raw=true)
+```bash
+keygen-dictionary --name "John Doe" --date 01-01-1990 --dry-run
+```
 
-## Planned Improvements
+### Config file mode
 
-- [ ] Enhance performance for faster dictionary generation
-- [ ] Publish as a pip package for easier installation
-- [ ] Implement more advanced word mangling techniques
-- [ ] Add support for output in multiple formats
+Create a YAML profile (see `config.example.yaml`):
+
+```yaml
+name:
+  - "John Doe"
+domain:
+  - "example.com"
+date:
+  - "01-01-1990"
+additional:
+  - "fido"
+level: 2
+min_length: 8
+max_length: 20
+```
+
+Run against it:
+
+```bash
+keygen-dictionary --config target.yaml
+```
+
+CLI flags override config values when both are provided.
+
+---
+
+## Output
+
+Candidates are written one per line to `pass.txt` (or `--output FILE`).
+
+With `--entropy-sort` / interactive sort prompt accepted, candidates are reordered
+ascending by Shannon entropy — predictable, human-chosen patterns appear first.
+This improves hit rate when using the list in a sequential attack.
+
+---
+
+## All flags
+
+```
+usage: keygen-dictionary [-h] [--version] [--config FILE]
+                         [--name NAME] [--domain DOMAIN] [--address ADDR]
+                         [--date DATE] [--id ID] [--additional DATA]
+                         [--level N] [--min-length N] [--max-length N]
+                         [--output FILE] [--entropy-sort] [--dry-run]
+
+target data (overrides --config):
+  --name NAME        Full name (repeatable)
+  --domain DOMAIN    Domain URL (repeatable)
+  --address ADDR     Address (repeatable)
+  --date DATE        Date dd-mm-yyyy (repeatable)
+  --id ID            ID number (repeatable)
+  --additional DATA  Additional keyword (repeatable)
+
+generation options:
+  --level N          Combination level (default: 2)
+  --min-length N     Min password length
+  --max-length N     Max password length
+  --output FILE      Output file (default: pass.txt)
+  --entropy-sort     Sort output by entropy (RAM-heavy)
+  --dry-run          Show token/candidate count without generating
+```
+
+---
 
 ## Contributing
 
-Contributions are welcome! If you have ideas for improvements or encounter any issues, please open an issue or submit a pull request.
+Issues and PRs welcome. See `roadmap.md` for planned work.
 
-## Disclaimer
-
-This tool is for educational and research purposes only. The authors are not responsible for any misuse or damage caused by this program. Always ensure you have explicit permission before testing the security of any system you do not own or have authorized access to.
+---
 
 ## License
 
 MIT
-
----
-
-Have fun and use responsibly!

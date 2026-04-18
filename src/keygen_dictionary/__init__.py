@@ -7,6 +7,10 @@ import math
 import sys
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
+
+import questionary
+import yaml
 
 
 class DictionaryMaker:
@@ -41,40 +45,53 @@ class DictionaryMaker:
     # ── Input ────────────────────────────────────────────────────────────────
 
     def interactive(self) -> None:
-        print("Welcome human, Please answer the following questions...")
+        print(f"keygen-dictionary v{__version__} — leave any field empty to skip\n")
         self._get_inputs()
         self._process_input()
+        if not self._confirm_tokens():
+            print("Aborted.")
+            return
         self._generate_dictionary()
 
     def _get_inputs(self) -> None:
-        print("Usage: leave empty to skip a field.")
-        raw = input("Combination level (2 recommended): ")
-        if raw.strip():
-            self.combination_level = int(raw)
+        def ask_multi(label: str, hint: str = "") -> list[str]:
+            prompt = f"{label}"
+            if hint:
+                prompt += f" ({hint})"
+            raw = questionary.text(prompt + ":").ask()
+            if not raw or not raw.strip():
+                return []
+            return [v.strip() for v in raw.split(",") if v.strip()]
 
-        raw = input("Min password length (0 = no limit): ")
-        if raw.strip():
-            self.min_length = int(raw)
+        level_raw = questionary.text(
+            "Combination level:",
+            default="2",
+            validate=lambda v: v.isdigit() and int(v) >= 1 or "Must be a positive integer",
+        ).ask()
+        self.combination_level = int(level_raw) if level_raw else 2
 
-        raw = input("Max password length (0 = no limit): ")
-        if raw.strip():
-            self.max_length = int(raw)
+        min_raw = questionary.text("Min password length (0 = no limit):", default="0").ask()
+        self.min_length = int(min_raw) if min_raw and min_raw.strip() != "0" else 0
 
-        self._ask("Domain URL?", "domain_name")
-        self._ask("Address?", "address")
-        self._ask("Full name?", "full_name")
-        self._ask("Birthdate or important date? (dd-mm-yyyy)", "important_date")
-        self._ask("Identifier or ID number?", "identification")
-        self._ask("Additional data?", "additional_data")
+        max_raw = questionary.text("Max password length (0 = no limit):", default="0").ask()
+        self.max_length = int(max_raw) if max_raw and max_raw.strip() != "0" else 0
 
-    def _ask(self, question: str, attr: str) -> None:
-        values: list[str] = []
-        while True:
-            answer = input(f"{question} (empty = next field): ").strip()
-            if not answer:
-                break
-            values.append(answer)
-        setattr(self, attr, values)
+        self.full_name    = ask_multi("Full name",                   "comma-separated if multiple")
+        self.domain_name  = ask_multi("Domain URL")
+        self.address      = ask_multi("Address")
+        self.important_date = ask_multi("Birth/important date",      "dd-mm-yyyy")
+        self.identification = ask_multi("ID number")
+        self.additional_data = ask_multi("Additional keywords",      "comma-separated")
+
+    def _confirm_tokens(self) -> bool:
+        tokens = self._dedup(self.tokens)
+        n = len(tokens)
+        total = sum(n ** i for i in range(1, self.combination_level + 1))
+        sample = ", ".join(tokens[:12]) + ("..." if n > 12 else "")
+        print(f"\n  Tokens collected : {n:,}")
+        print(f"  Est. candidates  : ~{total:,}")
+        print(f"  Sample           : {sample}\n")
+        return questionary.confirm("Proceed with generation?", default=True).ask()
 
     def load_from_args(self, args: argparse.Namespace) -> None:
         if args.name:
@@ -95,6 +112,23 @@ class DictionaryMaker:
             self.min_length = args.min_length
         if args.max_length:
             self.max_length = args.max_length
+
+    def load_from_config(self, path: str) -> None:
+        data = yaml.safe_load(Path(path).read_text())
+        if not isinstance(data, dict):
+            raise ValueError(f"Invalid config: {path}")
+        self.full_name       = data.get("name", [])
+        self.domain_name     = data.get("domain", [])
+        self.address         = data.get("address", [])
+        self.important_date  = data.get("date", [])
+        self.identification  = data.get("id", [])
+        self.additional_data = data.get("additional", [])
+        if "level" in data:
+            self.combination_level = int(data["level"])
+        if "min_length" in data:
+            self.min_length = int(data["min_length"])
+        if "max_length" in data:
+            self.max_length = int(data["max_length"])
 
     # ── Token processors ─────────────────────────────────────────────────────
 
@@ -154,8 +188,11 @@ class DictionaryMaker:
         numbers = [text] if len(text) == 1 else [s for s in text.split() if s.isdigit()]
         tokens: list[str] = []
         for number in numbers:
-            for i in range(1, len(number)):
-                tokens.append(number[:i])
+            if len(number) == 1:
+                tokens.append(number)
+            else:
+                for i in range(1, len(number)):
+                    tokens.append(number[:i])
         return self._dedup(tokens)
 
     # ── Processing pipeline ───────────────────────────────────────────────────
@@ -291,8 +328,9 @@ def _parse_args() -> argparse.Namespace:
         epilog="Omit all data flags to enter interactive mode.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument("--config", metavar="FILE", help="Load target data from YAML config file")
 
-    data = parser.add_argument_group("target data")
+    data = parser.add_argument_group("target data (overrides --config)")
     data.add_argument("--name",       metavar="NAME",   action="append", help="Full name (repeatable)")
     data.add_argument("--domain",     metavar="DOMAIN", action="append", help="Domain URL (repeatable)")
     data.add_argument("--address",    metavar="ADDR",   action="append", help="Address (repeatable)")
@@ -320,8 +358,12 @@ def main() -> None:
         args = _parse_args()
         maker = DictionaryMaker()
 
+        if args.config:
+            maker.load_from_config(args.config)
         if _has_data_args(args):
             maker.load_from_args(args)
+
+        if args.config or _has_data_args(args):
             if args.dry_run:
                 maker.dry_run()
             else:

@@ -41,24 +41,24 @@
 - [x] **`--version` flag** — print version and exit
 
 ### Input UX
-- [ ] **Config file support** — load inputs from YAML/JSON profile; useful for rerunning same target
+- [x] **Config file support** — load inputs from YAML/JSON profile; useful for rerunning same target
   ```
   keygen-dictionary --config target.yaml
   ```
-- [ ] **Interactive mode polish** — replace raw `input()` with arrow-key navigation, inline validation, and clear field descriptions (consider `questionary` or `InquirerPy`)
-- [ ] **Confirm step** — show collected tokens before generation; let user abort or adjust
+- [x] **Interactive mode polish** — replaced raw `input()` with `questionary` prompts; comma-separated multi-value fields; inline validation on combination level
+- [x] **Confirm step** — shows token count, estimate, and sample before generation; user can abort
 
 ### Docs
-- [ ] **Rewrite README** — add badges (Python version, license), usage examples for both interactive and CLI modes, output format explanation, ethical use disclaimer prominently at top
-- [ ] **Add `--help` examples** in README
+- [x] **Rewrite README** — add badges (Python version, license), usage examples for both interactive and CLI modes, output format explanation, ethical use disclaimer prominently at top
+- [x] **Add `--help` examples** in README
 
 ### Tests
-- [ ] **Unit tests for processors** — `_process_name`, `_process_date`, `_process_numbers`, `_process_identification` each have edge cases worth pinning (empty input, single char, date format variants)
-- [ ] **Entropy sort correctness** — assert `"password"` ranks lower than `"xK9@mN2"`
-- [ ] **Length filter** — assert candidates outside min/max are excluded
-- [ ] **Leet variants** — assert `"admin"` → `"4dm1n"`, no duplicates added
-- [ ] **Integration test** — run full pipeline with fixture inputs, assert output file non-empty and sorted by entropy when opted in
-- [ ] **CI** — GitHub Actions workflow: run tests on push to `master` + PRs
+- [x] **Unit tests for processors** — `_process_name`, `_process_date`, `_process_numbers`, `_process_identification` each have edge cases worth pinning (empty input, single char, date format variants)
+- [x] **Entropy sort correctness** — assert `"password"` ranks lower than `"xK9@mN2"`
+- [x] **Length filter** — assert candidates outside min/max are excluded
+- [x] **Leet variants** — assert `"admin"` → `"4dm1n"`, no duplicates added
+- [x] **Integration test** — run full pipeline with fixture inputs, assert output file non-empty and sorted by entropy when opted in
+- [x] **CI** — GitHub Actions workflow: run tests on push to `master` + PRs
 
 ### Extras (suggestions)
 - [ ] **`--config-save` flag** — dump current session inputs to YAML for reuse

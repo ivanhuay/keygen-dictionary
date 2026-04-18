@@ -1,0 +1,25 @@
+# keygen-dictionary config example
+# Usage: keygen-dictionary --config config.yaml
+
+name:
+  - "John Doe"
+
+domain:
+  - "example.com"
+
+address:
+  - "123 Main St"
+
+date:
+  - "01-01-1990"
+
+id:
+  - "12345678"
+
+additional:
+  - "fido"
+  - "chelsea"
+
+level: 2
+min_length: 6
+max_length: 20
