@@ -23,3 +23,8 @@ additional:
 level: 2
 min_length: 6
 max_length: 20
+
+# optional: override default leet substitutions (a→4, e→3, i→1, o→0, s→5)
+# leet_map:
+#   a: "@"
+#   s: "$"

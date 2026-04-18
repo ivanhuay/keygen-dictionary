@@ -25,10 +25,10 @@ class DictionaryMaker:
         self.address: list[str] = []
         self.important_date: list[str] = []
         self.identification: list[str] = []
+        self.quiet: bool = False
+        self._leet_table: dict[int, str] = str.maketrans("aeios", "43105")
         self._seed_years()
         self._seed_suffixes()
-
-    _LEET_TABLE = str.maketrans("aeios", "43105")
 
     _COMMON_SUFFIXES = ["!", "!!", "123", "1234", "#1", "1", "01", "99", "2000"]
 
@@ -41,6 +41,12 @@ class DictionaryMaker:
 
     def _seed_suffixes(self) -> None:
         self.tokens.extend(self._COMMON_SUFFIXES)
+
+    def set_leet_map(self, mapping: dict[str, str]) -> None:
+        self._leet_table = str.maketrans(
+            "".join(mapping.keys()),
+            "".join(mapping.values()),
+        )
 
     # ── Input ────────────────────────────────────────────────────────────────
 
@@ -55,9 +61,7 @@ class DictionaryMaker:
 
     def _get_inputs(self) -> None:
         def ask_multi(label: str, hint: str = "") -> list[str]:
-            prompt = f"{label}"
-            if hint:
-                prompt += f" ({hint})"
+            prompt = label + (f" ({hint})" if hint else "")
             raw = questionary.text(prompt + ":").ask()
             if not raw or not raw.strip():
                 return []
@@ -76,12 +80,12 @@ class DictionaryMaker:
         max_raw = questionary.text("Max password length (0 = no limit):", default="0").ask()
         self.max_length = int(max_raw) if max_raw and max_raw.strip() != "0" else 0
 
-        self.full_name    = ask_multi("Full name",                   "comma-separated if multiple")
-        self.domain_name  = ask_multi("Domain URL")
-        self.address      = ask_multi("Address")
-        self.important_date = ask_multi("Birth/important date",      "dd-mm-yyyy")
-        self.identification = ask_multi("ID number")
-        self.additional_data = ask_multi("Additional keywords",      "comma-separated")
+        self.full_name       = ask_multi("Full name",           "comma-separated if multiple")
+        self.domain_name     = ask_multi("Domain URL")
+        self.address         = ask_multi("Address")
+        self.important_date  = ask_multi("Birth/important date","dd-mm-yyyy")
+        self.identification  = ask_multi("ID number")
+        self.additional_data = ask_multi("Additional keywords", "comma-separated")
 
     def _confirm_tokens(self) -> bool:
         tokens = self._dedup(self.tokens)
@@ -112,6 +116,8 @@ class DictionaryMaker:
             self.min_length = args.min_length
         if args.max_length:
             self.max_length = args.max_length
+        if args.leet:
+            self.set_leet_map(_parse_leet_arg(args.leet))
 
     def load_from_config(self, path: str) -> None:
         data = yaml.safe_load(Path(path).read_text())
@@ -129,6 +135,30 @@ class DictionaryMaker:
             self.min_length = int(data["min_length"])
         if "max_length" in data:
             self.max_length = int(data["max_length"])
+        if "leet_map" in data:
+            self.set_leet_map({str(k): str(v) for k, v in data["leet_map"].items()})
+
+    def save_config(self, path: str) -> None:
+        data: dict = {}
+        if self.full_name:
+            data["name"] = self.full_name
+        if self.domain_name:
+            data["domain"] = self.domain_name
+        if self.address:
+            data["address"] = self.address
+        if self.important_date:
+            data["date"] = self.important_date
+        if self.identification:
+            data["id"] = self.identification
+        if self.additional_data:
+            data["additional"] = self.additional_data
+        data["level"] = self.combination_level
+        if self.min_length:
+            data["min_length"] = self.min_length
+        if self.max_length:
+            data["max_length"] = self.max_length
+        Path(path).write_text(yaml.dump(data, default_flow_style=False))
+        print(f"Config saved to {path}.")
 
     # ── Token processors ─────────────────────────────────────────────────────
 
@@ -181,7 +211,7 @@ class DictionaryMaker:
         for combo in itertools.combinations(tokens, 3):
             tokens.append("".join(combo))
 
-        print(f"Date combinations: {len(tokens)}.")
+        self._log(f"Date combinations: {len(tokens)}.")
         return self._dedup(tokens)
 
     def _process_identification(self, text: str) -> list[str]:
@@ -198,7 +228,7 @@ class DictionaryMaker:
     # ── Processing pipeline ───────────────────────────────────────────────────
 
     def _process_input(self) -> None:
-        print("Starting processing...")
+        self._log("Starting processing...")
         processors = [
             (self.domain_name,    "domain name",     self._process_domain),
             (self.full_name,      "full name",        self._process_name),
@@ -209,12 +239,19 @@ class DictionaryMaker:
         ]
         for values, label, fn in processors:
             if values:
-                print(f"Processing {label}...")
+                self._log(f"Processing {label}...")
                 for value in values:
                     self.tokens.extend(fn(value))
 
-        title_variants = [t.title() for t in self.tokens if t.title() not in self.tokens]
-        self.tokens.extend(title_variants)
+        existing = set(self.tokens)
+        case_variants = []
+        for t in self.tokens:
+            for variant in (t.title(), t.upper(), t.capitalize()):
+                if variant not in existing:
+                    case_variants.append(variant)
+                    existing.add(variant)
+        self.tokens.extend(case_variants)
+
         self._apply_leet()
         self._green_print("Done")
 
@@ -222,12 +259,12 @@ class DictionaryMaker:
         existing = set(self.tokens)
         leet_variants = []
         for token in self.tokens:
-            variant = token.lower().translate(self._LEET_TABLE)
+            variant = token.lower().translate(self._leet_table)
             if variant != token.lower() and variant not in existing:
                 leet_variants.append(variant)
                 existing.add(variant)
         self.tokens.extend(leet_variants)
-        print(f"Leet variants added: {len(leet_variants)}.")
+        self._log(f"Leet variants added: {len(leet_variants)}.")
 
     # ── Dictionary generation ─────────────────────────────────────────────────
 
@@ -251,13 +288,13 @@ class DictionaryMaker:
         tokens = self._dedup(self.tokens)
         n = len(tokens)
         total = sum(n ** i for i in range(1, self.combination_level + 1))
-        print(f"Tokens:        {n:,}")
-        print(f"Level:         {self.combination_level}")
+        print(f"Tokens:          {n:,}")
+        print(f"Level:           {self.combination_level}")
         print(f"Est. candidates: ~{total:,}")
         if self.min_length or self.max_length:
             lo = self.min_length or "—"
             hi = self.max_length or "—"
-            print(f"Length filter: {lo}–{hi}")
+            print(f"Length filter:   {lo}–{hi}")
 
     def _generate_dictionary(
         self,
@@ -267,7 +304,7 @@ class DictionaryMaker:
         tokens = self._dedup(self.tokens)
         n = len(tokens)
         total = sum(n ** i for i in range(1, self.combination_level + 1))
-        print(f"Making combinations from {n} tokens (~{total:,} candidates)...")
+        self._log(f"Making combinations from {n} tokens (~{total:,} candidates)...")
 
         seen: set[str] = set()
         written = 0
@@ -275,7 +312,7 @@ class DictionaryMaker:
 
         with open(output, "w") as f:
             for level in range(1, self.combination_level + 1):
-                print(f"Starting level {level}...")
+                self._log(f"Starting level {level}...")
                 for combo in itertools.product(tokens, repeat=level):
                     processed += 1
                     candidate = "".join(combo)
@@ -283,14 +320,16 @@ class DictionaryMaker:
                         seen.add(candidate)
                         f.write(candidate + "\n")
                         written += 1
-                    if processed % 50_000 == 0:
+                    if not self.quiet and processed % 50_000 == 0:
                         pct = processed / total * 100
                         sys.stdout.write(f"\r  {processed:,}/{total:,} ({pct:.1f}%) — {written:,} written")
                         sys.stdout.flush()
-                sys.stdout.write("\n")
+                if not self.quiet:
+                    sys.stdout.write("\n")
                 self._green_print(f"Level {level}: done")
 
-        self._green_print(f"Wrote {written:,} lines to {output}.")
+        # always print final count even in quiet mode
+        print(f"Wrote {written:,} lines to {output}.")
 
         if entropy_sort is None:
             raw = input("Sort by entropy? Loads all lines into RAM (y/N): ").strip().lower()
@@ -300,10 +339,10 @@ class DictionaryMaker:
             self._entropy_sort_file(output)
 
     def _entropy_sort_file(self, path: str) -> None:
-        print("Loading file for entropy sort...")
+        self._log("Loading file for entropy sort...")
         with open(path) as f:
             lines = [line.rstrip("\n") for line in f]
-        print(f"Sorting {len(lines):,} lines...")
+        self._log(f"Sorting {len(lines):,} lines...")
         lines.sort(key=self._shannon_entropy)
         with open(path, "w") as f:
             for line in lines:
@@ -315,11 +354,26 @@ class DictionaryMaker:
     def _dedup(self, items: list[str]) -> list[str]:
         return sorted(set(items))
 
+    def _log(self, text: str) -> None:
+        if not self.quiet:
+            print(text)
+
     def _green_print(self, text: str) -> None:
-        print(f"\033[92m{text} \u2713\033[0m")
+        if not self.quiet:
+            print(f"\033[92m{text} \u2713\033[0m")
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
+def _parse_leet_arg(raw: str) -> dict[str, str]:
+    mapping = {}
+    for pair in raw.split(","):
+        if ":" not in pair:
+            raise argparse.ArgumentTypeError(f"Invalid leet pair: {pair!r} (expected 'char:sub')")
+        k, v = pair.split(":", 1)
+        mapping[k.strip()] = v.strip()
+    return mapping
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -328,7 +382,9 @@ def _parse_args() -> argparse.Namespace:
         epilog="Omit all data flags to enter interactive mode.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("--config", metavar="FILE", help="Load target data from YAML config file")
+    parser.add_argument("--config",      metavar="FILE", help="Load target data from YAML config file")
+    parser.add_argument("--config-save", metavar="FILE", help="Save collected inputs to YAML after loading")
+    parser.add_argument("-q", "--quiet", action="store_true", help="Suppress all output except final line count")
 
     data = parser.add_argument_group("target data (overrides --config)")
     data.add_argument("--name",       metavar="NAME",   action="append", help="Full name (repeatable)")
@@ -345,6 +401,7 @@ def _parse_args() -> argparse.Namespace:
     gen.add_argument("--output",     default="pass.txt",     metavar="FILE", help="Output file (default: pass.txt)")
     gen.add_argument("--entropy-sort", action="store_true",                  help="Sort output by entropy (RAM-heavy)")
     gen.add_argument("--dry-run",    action="store_true",                    help="Show token/candidate count without generating")
+    gen.add_argument("--leet",       metavar="MAP",                          help="Custom leet map e.g. 'a:4,e:3,s:$'")
 
     return parser.parse_args()
 
@@ -357,11 +414,15 @@ def main() -> None:
     try:
         args = _parse_args()
         maker = DictionaryMaker()
+        maker.quiet = args.quiet
 
         if args.config:
             maker.load_from_config(args.config)
         if _has_data_args(args):
             maker.load_from_args(args)
+
+        if args.config_save:
+            maker.save_config(args.config_save)
 
         if args.config or _has_data_args(args):
             if args.dry_run:

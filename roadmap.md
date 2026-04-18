@@ -61,7 +61,7 @@
 - [x] **CI** — GitHub Actions workflow: run tests on push to `master` + PRs
 
 ### Extras (suggestions)
-- [ ] **`--config-save` flag** — dump current session inputs to YAML for reuse
-- [ ] **Quiet mode (`-q`)** — suppress all output except final line count (useful when piping)
-- [ ] **Custom leet map** — let user override substitutions via config or flag
-- [ ] **Case variants** — beyond `.title()`: add `.upper()` and `.capitalize()` per token
+- [x] **`--config-save` flag** — dump current session inputs to YAML for reuse
+- [x] **Quiet mode (`-q`)** — suppress all output except final line count (useful when piping)
+- [x] **Custom leet map** — `--leet "a:@,s:$"` flag or `leet_map` key in YAML config
+- [x] **Case variants** — `.title()`, `.upper()`, `.capitalize()` all added per token
