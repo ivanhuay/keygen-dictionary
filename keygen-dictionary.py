@@ -1,213 +1,250 @@
 #!/usr/bin/python3
-import os
-
 import itertools
-import operator
+import math
+import sys
+from collections import Counter
 from datetime import datetime
+
 
 class DictionaryMaker:
     def __init__(self):
-        self.aditionalData = []
-        self.simpleCollection = ["admin", "adm", "adm", ".", "-", "_", "@"]
-        self.convinationLevel = 2
-        self.domainName = False
-        self.fullName = False
-        self.address = False
-        self.importantDate = False
-        self.identification = False
-        self.fillSimpleCollection()
+        self.additional_data: list[str] = []
+        self.tokens: list[str] = ["admin", "adm", ".", "-", "_", "@"]
+        self.combination_level: int = 2
+        self.min_length: int = 0
+        self.max_length: int = 0
+        self.domain_name: list[str] = []
+        self.full_name: list[str] = []
+        self.address: list[str] = []
+        self.important_date: list[str] = []
+        self.identification: list[str] = []
+        self._seed_years()
+        self._seed_suffixes()
 
-    def fillSimpleCollection(self):
-        # Populate with the latest 10 years
+    _LEET_TABLE = str.maketrans("aeios", "43105")
+
+    _COMMON_SUFFIXES = ["!", "!!", "123", "1234", "#1", "1", "01", "99", "2000"]
+
+    def _seed_years(self) -> None:
         current_year = datetime.now().year
-        list_years = [str(i) for i in range(current_year -10, current_year)]
-        list_years_end = [str(i)[-2:] for i in range(current_year -10, current_year)]
-        self.simpleCollection.extend(list_years)
-        self.simpleCollection.extend(list_years_end)
-        print(self.simpleCollection)
+        years = [str(y) for y in range(current_year - 10, current_year)]
+        years_short = [str(y)[-2:] for y in range(current_year - 10, current_year)]
+        self.tokens.extend(years)
+        self.tokens.extend(years_short)
 
-    def welcome(self):
+    def _seed_suffixes(self) -> None:
+        self.tokens.extend(self._COMMON_SUFFIXES)
+
+    # ── Input ────────────────────────────────────────────────────────────────
+
+    def welcome(self) -> None:
         print("Welcome human, Please answer the following questions...")
-        self.getInputs()
-        self.processInput()
-        self.generateDictionary()
+        self._get_inputs()
+        self._process_input()
+        self._generate_dictionary()
 
-    def getInputs(self):
-        print("Usage: it is possible to enter an empty response...")
-        convination = input("convination level: (2 recomended)")
-        self.convinationLevel = 2
-        if convination != "" :
-            self.convinationLevel = int(convination)
-        self.makeQuestion("Domain url?", "domainName")
-        self.makeQuestion("Address?", "address")
-        self.makeQuestion("Full Name?", "fullName")
-        self.makeQuestion(
-            "Birthdate or important date?(dd-mm-yyyy)", "importantDate")
-        self.makeQuestion(
-            "Identifier or identification number?", "identification")
-        self.makeQuestion("Aditional data?", "aditionalData")
+    def _get_inputs(self) -> None:
+        print("Usage: leave empty to skip a field.")
+        raw = input("Combination level (2 recommended): ")
+        if raw.strip():
+            self.combination_level = int(raw)
 
-    def processNumbers(self, inStr):
-        numbers = [str(s) for s in inStr.split() if s.isdigit()]
-        response = []
-        for number in numbers:
-            for i in range(1, len(number)):
-                res = itertools.product(number, repeat=i)
-                for convination in res:
-                    response.append(''.join(convination))
-        return response
+        raw = input("Min password length (0 = no limit): ")
+        if raw.strip():
+            self.min_length = int(raw)
 
-    def processStr(self, inStr):
-        response = [str(s) for s in inStr.split() if not s.isdigit()]
-        response.append(inStr)
-        response.append("".join(inStr.split()))
-        return response
+        raw = input("Max password length (0 = no limit): ")
+        if raw.strip():
+            self.max_length = int(raw)
 
-    def processName(self, inStr):
-        response = self.processStr(inStr)
-        words = [str(s) for s in inStr.split() if not s.isdigit()]
+        self._ask("Domain URL?", "domain_name")
+        self._ask("Address?", "address")
+        self._ask("Full name?", "full_name")
+        self._ask("Birthdate or important date? (dd-mm-yyyy)", "important_date")
+        self._ask("Identifier or ID number?", "identification")
+        self._ask("Additional data?", "additional_data")
+
+    def _ask(self, question: str, attr: str) -> None:
+        values: list[str] = []
+        while True:
+            answer = input(f"{question} (empty = next field): ").strip()
+            if not answer:
+                break
+            values.append(answer)
+        setattr(self, attr, values)
+
+    # ── Token processors ─────────────────────────────────────────────────────
+
+    def _process_numbers(self, text: str) -> list[str]:
+        tokens = []
+        for number in (s for s in text.split() if s.isdigit()):
+            for i in range(1, len(number) + 1):
+                tokens.append(number[:i])
+                if number[i:]:
+                    tokens.append(number[i:])
+        return tokens
+
+    def _process_str(self, text: str) -> list[str]:
+        words = [s for s in text.split() if not s.isdigit()]
+        return words + [text, "".join(text.split())]
+
+    def _process_name(self, text: str) -> list[str]:
+        tokens = self._process_str(text)
+        words = [s for s in text.split() if not s.isdigit()]
         for word in words:
-            response.append(word[0])
-            response.append(word[0].title())
-        res = itertools.product(response, repeat=2)
-        for convination in res:
-            response.append(''.join(convination))
-        return self.cleanList(response)
+            tokens.append(word[0])
+            tokens.append(word[0].upper())
+        for combo in itertools.product(tokens, repeat=2):
+            tokens.append("".join(combo))
+        return self._dedup(tokens)
 
-    def processDomain(self, inStr):
-        response = []
-        response.append(inStr)
-        response.extend(inStr.split("."))
-        return response
+    def _process_domain(self, text: str) -> list[str]:
+        return [text] + text.split(".")
 
-    def processAddress(self, inStr):
-        response = []
-        response.append(inStr)
-        response.extend(inStr.split())
-        response.append(''.join(inStr.split()))
-        response.extend(self.processNumbers(inStr))
-        response.extend(self.processStr(inStr))
-        return response
+    def _process_address(self, text: str) -> list[str]:
+        tokens = [text] + text.split() + ["".join(text.split())]
+        tokens.extend(self._process_numbers(text))
+        tokens.extend(self._process_str(text))
+        return tokens
 
-    def processDate(self, inStr):
-        response = []
-        if "/" in inStr:
-            response.extend(inStr.split("/"))
-        if "-" in inStr:
-            response.extend(inStr.split("-"))
+    def _process_date(self, text: str) -> list[str]:
+        tokens: list[str] = []
+        if "/" in text:
+            tokens.extend(text.split("/"))
+        if "-" in text:
+            tokens.extend(text.split("-"))
 
-        if len(response) == 3 and len(response[2]) == 4:
-            response.append(response[2][:2])
-            response.append(response[2][2:])
+        if not tokens:
+            return tokens
 
-        if len(response) == 0:
-            return response
+        if len(tokens) == 3 and len(tokens[2]) == 4:
+            tokens.append(tokens[2][:2])
+            tokens.append(tokens[2][2:])
 
-        res = itertools.combinations(response, 3)
-        for convination in res:
-            response.append(''.join(convination))
+        for combo in itertools.combinations(tokens, 3):
+            tokens.append("".join(combo))
 
-        print("date convinations: " + str(len(response)) + ".")
-        return self.cleanList(response)
+        print(f"Date combinations: {len(tokens)}.")
+        return self._dedup(tokens)
 
-    def processIdentification(self, inStr):
-        if(len(str(inStr)) == 1):
-            numbers = [str(inStr)]
-        else:
-            numbers = [str(s) for s in inStr.split() if s.isdigit()]
-
-        response = []
+    def _process_identification(self, text: str) -> list[str]:
+        numbers = [text] if len(text) == 1 else [s for s in text.split() if s.isdigit()]
+        tokens: list[str] = []
         for number in numbers:
             for i in range(1, len(number)):
-                response.append(number[0:i])
-                response.append(number[:i])
-        return self.cleanList(response)
+                tokens.append(number[:i])
+        return self._dedup(tokens)
 
-    def makeQuestion(self, questionStr, storeStr):
-        nextQuestion = True
+    # ── Processing pipeline ───────────────────────────────────────────────────
 
-        if not getattr(self, storeStr):
-            setattr(self, storeStr, [])
-
-        storeSelf = getattr(self, storeStr)
-
-        while nextQuestion:
-            tempAnswer = input(questionStr + " (empty = next question): ")
-            if tempAnswer != "":
-                storeSelf.append(tempAnswer)
-            else:
-                nextQuestion = False
-        setattr(self, storeStr, storeSelf)
-
-    def processInput(self):
+    def _process_input(self) -> None:
         print("Starting processing...")
-        if len(self.domainName) > 0:
-            print("Processing domain name...")
-            for domain in self.domainName:
-                self.simpleCollection.extend(self.processDomain(domain))
-            if len(self.fullName) > 0:
-                print("Processing full name...")
-                for fullName in self.fullName:
-                    self.simpleCollection.extend(self.processName(fullName))
-        if len(self.address) > 0:
-            print("Processing address...")
-            for address in self.address:
-                self.simpleCollection.extend(self.processAddress(address))
-        if len(self.aditionalData) > 0:
-            print("Processing additional data...")
-            for data in self.aditionalData:
-                self.simpleCollection.extend(self.processStr(data))
-        if len(self.importantDate) > 0:
-            print("Processing dates...")
-            for date in self.importantDate:
-                self.simpleCollection.extend(self.processDate(date))
-        if len(self.identification) > 0:
-            print("Processing identification...")
-            for identification in self.identification:
-                self.simpleCollection.extend(
-                    self.processIdentification(identification))
-        tempTitles = []
-        for text in self.simpleCollection:
-            if not str(text).title() in tempTitles:
-                tempTitles.append(str(text).title())
-        self.simpleCollection.extend(tempTitles)
+        processors = [
+            (self.domain_name,    "domain name",     self._process_domain),
+            (self.full_name,      "full name",        self._process_name),
+            (self.address,        "address",          self._process_address),
+            (self.additional_data,"additional data",  self._process_str),
+            (self.important_date, "dates",            self._process_date),
+            (self.identification, "identification",   self._process_identification),
+        ]
+        for values, label, fn in processors:
+            if values:
+                print(f"Processing {label}...")
+                for value in values:
+                    self.tokens.extend(fn(value))
 
-        self.greenPrint("Done")
+        title_variants = [t.title() for t in self.tokens if t.title() not in self.tokens]
+        self.tokens.extend(title_variants)
+        self._apply_leet()
+        self._green_print("Done")
 
-    def cleanList(self, list):
-        return sorted(set(list))
+    def _apply_leet(self) -> None:
+        existing = set(self.tokens)
+        leet_variants = []
+        for token in self.tokens:
+            variant = token.lower().translate(self._LEET_TABLE)
+            if variant != token.lower() and variant not in existing:
+                leet_variants.append(variant)
+                existing.add(variant)
+        self.tokens.extend(leet_variants)
+        print(f"Leet variants added: {len(leet_variants)}.")
 
-    def greenPrint(self, text):
-        print('\033[92m' + text + " " + u'\u2713' + '\033[0m')
+    # ── Dictionary generation ─────────────────────────────────────────────────
 
-    def generateDictionary(self):
-        print("making words convinations...")
-        print(str(len(self.simpleCollection)) + " words.")
-        lines = []
-        for i in range(1, self.convinationLevel + 1):
-            print("starting level: " + str(i) + ".")
-            res = itertools.product(self.cleanList(
-                self.simpleCollection), repeat=i)
-            for j in res:
-                posiblePass = ''.join(j)
-                lines.append(posiblePass)
-            self.greenPrint("leven " + str(i) + ": done")
-        print("cleaning List... " + str(len(lines)))
-        lines = self.cleanList(lines)
-        self.greenPrint("clen list done lines: " + str(len(lines)) + ".")
+    @staticmethod
+    def _shannon_entropy(s: str) -> float:
+        if not s:
+            return 0.0
+        freq = Counter(s)
+        n = len(s)
+        return -sum((c / n) * math.log2(c / n) for c in freq.values())
 
-        print("writing " + str(len(lines)) + " lines in file...")
-        self.makeFile(lines)
-        self.greenPrint("write file done")
+    def _passes_length_filter(self, s: str) -> bool:
+        if self.min_length and len(s) < self.min_length:
+            return False
+        if self.max_length and len(s) > self.max_length:
+            return False
+        return True
 
-    def makeFile(self, lines):
-        with open('pass.txt', 'a') as passFile:
+    def _generate_dictionary(self) -> None:
+        tokens = self._dedup(self.tokens)
+        n = len(tokens)
+        total = sum(n ** i for i in range(1, self.combination_level + 1))
+        print(f"Making combinations from {n} tokens (~{total:,} candidates)...")
+
+        seen: set[str] = set()
+        written = 0
+        processed = 0
+
+        with open("pass.txt", "w") as f:
+            for level in range(1, self.combination_level + 1):
+                print(f"Starting level {level}...")
+                for combo in itertools.product(tokens, repeat=level):
+                    processed += 1
+                    candidate = "".join(combo)
+                    if candidate not in seen and self._passes_length_filter(candidate):
+                        seen.add(candidate)
+                        f.write(candidate + "\n")
+                        written += 1
+                    if processed % 50_000 == 0:
+                        pct = processed / total * 100
+                        sys.stdout.write(f"\r  {processed:,}/{total:,} ({pct:.1f}%) — {written:,} written")
+                        sys.stdout.flush()
+                sys.stdout.write("\n")
+                self._green_print(f"Level {level}: done")
+
+        self._green_print(f"Wrote {written:,} lines to pass.txt.")
+
+        raw = input("Sort by entropy? Loads all lines into RAM (y/N): ").strip().lower()
+        if raw == "y":
+            self._entropy_sort_file("pass.txt")
+
+    def _entropy_sort_file(self, path: str) -> None:
+        print("Loading file for entropy sort...")
+        with open(path) as f:
+            lines = [l.rstrip("\n") for l in f]
+        print(f"Sorting {len(lines):,} lines...")
+        lines.sort(key=self._shannon_entropy)
+        with open(path, "w") as f:
             for line in lines:
-                passFile.write(line + '\n')
+                f.write(line + "\n")
+        self._green_print("Entropy sort done.")
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _dedup(self, items: list[str]) -> list[str]:
+        return sorted(set(items))
+
+    def _green_print(self, text: str) -> None:
+        print(f"\033[92m{text} \u2713\033[0m")
 
 
-try:
-    dictionaryMaker = DictionaryMaker()
-    dictionaryMaker.welcome()
-except KeyboardInterrupt:
-    print("\n\nKeygen interrupt, Bye!") 
+def main() -> None:
+    try:
+        DictionaryMaker().welcome()
+    except KeyboardInterrupt:
+        print("\n\nKeygen interrupted. Bye!")
+
+
+if __name__ == "__main__":
+    main()
