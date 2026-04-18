@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 __version__ = "1.0.0"
 
+import argparse
 import itertools
 import math
 import sys
@@ -39,7 +40,7 @@ class DictionaryMaker:
 
     # ── Input ────────────────────────────────────────────────────────────────
 
-    def welcome(self) -> None:
+    def interactive(self) -> None:
         print("Welcome human, Please answer the following questions...")
         self._get_inputs()
         self._process_input()
@@ -74,6 +75,26 @@ class DictionaryMaker:
                 break
             values.append(answer)
         setattr(self, attr, values)
+
+    def load_from_args(self, args: argparse.Namespace) -> None:
+        if args.name:
+            self.full_name = args.name
+        if args.domain:
+            self.domain_name = args.domain
+        if args.address:
+            self.address = args.address
+        if args.date:
+            self.important_date = args.date
+        if args.id:
+            self.identification = args.id
+        if args.additional:
+            self.additional_data = args.additional
+        if args.level:
+            self.combination_level = args.level
+        if args.min_length:
+            self.min_length = args.min_length
+        if args.max_length:
+            self.max_length = args.max_length
 
     # ── Token processors ─────────────────────────────────────────────────────
 
@@ -188,7 +209,24 @@ class DictionaryMaker:
             return False
         return True
 
-    def _generate_dictionary(self) -> None:
+    def dry_run(self) -> None:
+        self._process_input()
+        tokens = self._dedup(self.tokens)
+        n = len(tokens)
+        total = sum(n ** i for i in range(1, self.combination_level + 1))
+        print(f"Tokens:        {n:,}")
+        print(f"Level:         {self.combination_level}")
+        print(f"Est. candidates: ~{total:,}")
+        if self.min_length or self.max_length:
+            lo = self.min_length or "—"
+            hi = self.max_length or "—"
+            print(f"Length filter: {lo}–{hi}")
+
+    def _generate_dictionary(
+        self,
+        output: str = "pass.txt",
+        entropy_sort: bool | None = None,
+    ) -> None:
         tokens = self._dedup(self.tokens)
         n = len(tokens)
         total = sum(n ** i for i in range(1, self.combination_level + 1))
@@ -198,7 +236,7 @@ class DictionaryMaker:
         written = 0
         processed = 0
 
-        with open("pass.txt", "w") as f:
+        with open(output, "w") as f:
             for level in range(1, self.combination_level + 1):
                 print(f"Starting level {level}...")
                 for combo in itertools.product(tokens, repeat=level):
@@ -215,16 +253,19 @@ class DictionaryMaker:
                 sys.stdout.write("\n")
                 self._green_print(f"Level {level}: done")
 
-        self._green_print(f"Wrote {written:,} lines to pass.txt.")
+        self._green_print(f"Wrote {written:,} lines to {output}.")
 
-        raw = input("Sort by entropy? Loads all lines into RAM (y/N): ").strip().lower()
-        if raw == "y":
-            self._entropy_sort_file("pass.txt")
+        if entropy_sort is None:
+            raw = input("Sort by entropy? Loads all lines into RAM (y/N): ").strip().lower()
+            entropy_sort = raw == "y"
+
+        if entropy_sort:
+            self._entropy_sort_file(output)
 
     def _entropy_sort_file(self, path: str) -> None:
         print("Loading file for entropy sort...")
         with open(path) as f:
-            lines = [l.rstrip("\n") for l in f]
+            lines = [line.rstrip("\n") for line in f]
         print(f"Sorting {len(lines):,} lines...")
         lines.sort(key=self._shannon_entropy)
         with open(path, "w") as f:
@@ -241,9 +282,57 @@ class DictionaryMaker:
         print(f"\033[92m{text} \u2713\033[0m")
 
 
+# ── CLI ───────────────────────────────────────────────────────────────────────
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="keygen-dictionary",
+        description="OSINT-based password dictionary generator for authorized security testing.",
+        epilog="Omit all data flags to enter interactive mode.",
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+
+    data = parser.add_argument_group("target data")
+    data.add_argument("--name",       metavar="NAME",   action="append", help="Full name (repeatable)")
+    data.add_argument("--domain",     metavar="DOMAIN", action="append", help="Domain URL (repeatable)")
+    data.add_argument("--address",    metavar="ADDR",   action="append", help="Address (repeatable)")
+    data.add_argument("--date",       metavar="DATE",   action="append", help="Date dd-mm-yyyy (repeatable)")
+    data.add_argument("--id",         metavar="ID",     action="append", help="ID number (repeatable)")
+    data.add_argument("--additional", metavar="DATA",   action="append", help="Additional keyword (repeatable)")
+
+    gen = parser.add_argument_group("generation options")
+    gen.add_argument("--level",      type=int, default=None, metavar="N",    help="Combination level (default: 2)")
+    gen.add_argument("--min-length", type=int, default=None, metavar="N",    help="Min password length")
+    gen.add_argument("--max-length", type=int, default=None, metavar="N",    help="Max password length")
+    gen.add_argument("--output",     default="pass.txt",     metavar="FILE", help="Output file (default: pass.txt)")
+    gen.add_argument("--entropy-sort", action="store_true",                  help="Sort output by entropy (RAM-heavy)")
+    gen.add_argument("--dry-run",    action="store_true",                    help="Show token/candidate count without generating")
+
+    return parser.parse_args()
+
+
+def _has_data_args(args: argparse.Namespace) -> bool:
+    return any([args.name, args.domain, args.address, args.date, args.id, args.additional])
+
+
 def main() -> None:
     try:
-        DictionaryMaker().welcome()
+        args = _parse_args()
+        maker = DictionaryMaker()
+
+        if _has_data_args(args):
+            maker.load_from_args(args)
+            if args.dry_run:
+                maker.dry_run()
+            else:
+                maker._process_input()
+                maker._generate_dictionary(
+                    output=args.output,
+                    entropy_sort=args.entropy_sort or None,
+                )
+        else:
+            maker.interactive()
+
     except KeyboardInterrupt:
         print("\n\nKeygen interrupted. Bye!")
 

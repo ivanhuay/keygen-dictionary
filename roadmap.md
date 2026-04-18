@@ -31,14 +31,14 @@
 - [x] **Move to `src/` layout** — `src/keygen_dictionary/` package; update `pyproject.toml` find-packages path and entrypoint
 
 ### CLI Args
-- [ ] **`argparse` one-liner mode** — skip interactive prompts entirely when args provided:
+- [x] **`argparse` one-liner mode** — skip interactive prompts entirely when args provided:
   ```
   keygen-dictionary --name "John Doe" --date 01-01-1990 --domain example.com \
     --level 2 --min-length 8 --max-length 16 --output wordlist.txt
   ```
-- [ ] **`--dry-run` flag** — show token count and estimated candidate count without generating
-- [ ] **`--output` flag** — custom output filename (default: `pass.txt`)
-- [ ] **`--version` flag** — print version and exit
+- [x] **`--dry-run` flag** — show token count and estimated candidate count without generating
+- [x] **`--output` flag** — custom output filename (default: `pass.txt`)
+- [x] **`--version` flag** — print version and exit
 
 ### Input UX
 - [ ] **Config file support** — load inputs from YAML/JSON profile; useful for rerunning same target
