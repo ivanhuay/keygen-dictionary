@@ -2,7 +2,8 @@
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.0.0-informational)
+![Version](https://img.shields.io/badge/version-1.0.1-informational)
+[![PyPI](https://img.shields.io/pypi/v/keygen-dictionary)](https://pypi.org/project/keygen-dictionary/)
 
 OSINT-based password dictionary generator for authorized security testing.
 
@@ -34,7 +35,13 @@ targeted wordlist sorted by Shannon entropy — human-like combinations first.
 
 ## Installation
 
-**From source (recommended):**
+**From PyPI:**
+
+```bash
+pip install keygen-dictionary==1.0.0
+```
+
+**From source:**
 
 ```bash
 git clone https://github.com/ivanhuay/keygen-dictionary.git
@@ -195,6 +202,8 @@ generation options:
 ## Contributing
 
 Issues and PRs welcome. See `roadmap.md` for planned work.
+
+Repository: https://github.com/ivanhuay/keygen-dictionary
 
 ---
 
